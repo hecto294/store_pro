@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
-import 'screens/catalogo_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'screens/login_screen.dart';
 
-void main() {
-  runApp(const StoreProApp());
+void main() async {
+  // Asegura la inicialización de bindings para procesos asíncronos en main
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Carga obligatoria del archivo de variables de entorno (.env) antes de iniciar la app
+  await dotenv.load(fileName: "assets/.env");
+
+  runApp(const MyApp());
 }
 
-class StoreProApp extends StatelessWidget {
-  const StoreProApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'StorePro Fake API',
+      title: 'StorePro App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF02569B)),
         useMaterial3: true,
       ),
-      home: const CatalogoScreen(),
+      // Punto de arranque: Inicia en LoginScreen y fluye hacia PerfilScreen
+      home: const LoginScreen(),
     );
   }
 }

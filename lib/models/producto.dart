@@ -1,34 +1,33 @@
-import 'package:flutter/foundation.dart';
+import 'categoria.dart';
 
 class Producto {
-  final String id;
+  final int id;
   final String nombre;
   final double precio;
-  final String categoria;
+  final int stock;
+  final int categoriaId;
+  final bool estado;
+  final Categoria? categoria;
 
   Producto({
     required this.id,
     required this.nombre,
     required this.precio,
-    required this.categoria,
+    required this.stock,
+    required this.categoriaId,
+    required this.estado,
+    this.categoria,
   });
 
-  // FACTORY CONSTRUCTOR PARA CONVERTIR MAP (JSON) A OBJETO DART
-  factory Producto.fromJson(Map<String, dynamic> json) {
-    return Producto(
-      id: json['id'].toString(),
-      nombre: json['nombre'] ?? 'Sin nombre',
-      precio: (json['precio'] as num).toDouble(),
-      categoria: json['categoria'] ?? 'General',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'nombre': nombre,
-      'precio': precio,
-      'categoria': categoria,
-    };
-  }
+  factory Producto.fromJson(Map<String, dynamic> json) => Producto(
+    id: json['id'],
+    nombre: json['nombre'],
+    precio: (json['precio'] as num).toDouble(),
+    stock: json['stock'],
+    categoriaId: json['categoriaId'],
+    estado: json['estado'] ?? true,
+    categoria: json['categoria'] != null
+        ? Categoria.fromJson(json['categoria'])
+        : null,
+  );
 }
