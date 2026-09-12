@@ -7,6 +7,15 @@ import 'productos_screen.dart';
 // Enum para representar las 3 opciones del filtro de forma segura y legible.
 enum FiltroEstado { todos, activos, inactivos }
 
+// Paleta compartida con la pantalla de perfil admin.
+class AppColors {
+  static const azulInicio = Color(0xFF4C63F6);
+  static const azulFin = Color(0xFF2A3899);
+  static const dorado = Color(0xFFF5C542);
+  static const fondo = Color(0xFFF3F4F8);
+  static const textoSecundario = Color(0xFF8A8D99);
+}
+
 class CategoriasScreen extends StatefulWidget {
   const CategoriasScreen({super.key});
 
@@ -60,8 +69,23 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.fondo,
       appBar: AppBar(
-        title: const Text('Categorías'),
+        title: const Text(
+          'Categorías',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.azulInicio, AppColors.azulFin],
+            ),
+          ),
+        ),
         actions: [
           // --- Selector de filtro (PopupMenuButton) ---
           PopupMenuButton<FiltroEstado>(
@@ -79,7 +103,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                     Icon(
                       _filtroActual == filtro ? Icons.check_circle : Icons.circle_outlined,
                       size: 18,
-                      color: _filtroActual == filtro ? Colors.indigo : Colors.grey,
+                      color: _filtroActual == filtro ? AppColors.azulInicio : Colors.grey,
                     ),
                     const SizedBox(width: 10),
                     Text(_etiquetaFiltro(filtro)),
@@ -104,19 +128,24 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           if (_filtroActual != FiltroEstado.todos)
             Container(
               width: double.infinity,
-              color: Colors.indigo.withOpacity(0.08),
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              color: AppColors.dorado.withOpacity(0.15),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
               child: Row(
                 children: [
-                  const Icon(Icons.filter_alt, size: 16, color: Colors.indigo),
+                  const Icon(Icons.filter_alt, size: 16, color: AppColors.azulFin),
                   const SizedBox(width: 6),
                   Text(
                     'Mostrando: ${_etiquetaFiltro(_filtroActual)}',
-                    style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppColors.azulFin,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                   const Spacer(),
                   TextButton(
                     onPressed: () => setState(() => _filtroActual = FiltroEstado.todos),
+                    style: TextButton.styleFrom(foregroundColor: AppColors.azulFin),
                     child: const Text('Limpiar', style: TextStyle(fontSize: 12)),
                   ),
                 ],
@@ -126,34 +155,78 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
             child: FutureBuilder<List<Categoria>>(
               future: _futureCategorias,
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.hasData) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.azulInicio),
+                  );
+                }
 
                 final listaFiltrada = _aplicarFiltro(snapshot.data!);
 
                 if (listaFiltrada.isEmpty) {
                   return Center(
-                    child: Text('No hay categorías "${_etiquetaFiltro(_filtroActual)}"'),
+                    child: Text(
+                      'No hay categorías "${_etiquetaFiltro(_filtroActual)}"',
+                      style: const TextStyle(color: AppColors.textoSecundario),
+                    ),
                   );
                 }
 
                 return ListView.builder(
+                  padding: const EdgeInsets.all(16),
                   itemCount: listaFiltrada.length,
                   itemBuilder: (ctx, i) {
                     final cat = listaFiltrada[i];
-                    return ListTile(
-                      title: Text(
-                        cat.nombre,
-                        style: TextStyle(
-                          decoration: cat.estado ? TextDecoration.none : TextDecoration.lineThrough,
-                        ),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      subtitle: Text(cat.descripcion),
-                      trailing: Switch(
-                        value: cat.estado,
-                        onChanged: (val) async {
-                          await _service.cambiarEstado(cat.id);
-                          _cargarCategorias();
-                        },
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        leading: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: (cat.estado ? AppColors.azulInicio : Colors.grey)
+                                .withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.category,
+                            color: cat.estado ? AppColors.azulInicio : Colors.grey,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          cat.nombre,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            decoration: cat.estado ? TextDecoration.none : TextDecoration.lineThrough,
+                            color: cat.estado ? Colors.black87 : AppColors.textoSecundario,
+                          ),
+                        ),
+                        subtitle: Text(
+                          cat.descripcion,
+                          style: const TextStyle(color: AppColors.textoSecundario, fontSize: 12),
+                        ),
+                        trailing: Switch(
+                          value: cat.estado,
+                          activeColor: AppColors.dorado,
+                          activeTrackColor: AppColors.dorado.withOpacity(0.4),
+                          onChanged: (val) async {
+                            await _service.cambiarEstado(cat.id);
+                            _cargarCategorias();
+                          },
+                        ),
                       ),
                     );
                   },
