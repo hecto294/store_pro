@@ -154,5 +154,4 @@ app.patch('/api/productos/:id/estado', verificarToken, (req, res) => {
   res.status(404).json({ error: "Producto no encontrado" });
 });
 
-app.listen(3000, () => console.log("Servidor StorePro corriendo en http://localhost:3000"));
-            
+app.listen(3000, '0.0.0.0', () => console.log("Servidor StorePro corriendo en http://0.0.0.0:3000"));
