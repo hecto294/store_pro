@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/usuario.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'categorias_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -88,7 +89,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         const SizedBox(height: 4),
                         Text(
                           usuario.email,
-                          style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13),
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
                         ),
                         const SizedBox(height: 12),
                         Container(
@@ -132,7 +133,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -153,7 +154,31 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+
+                  // --- Botón ir al catálogo (Categorías) ---
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _acento,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.storefront),
+                      label: const Text('Ver Catálogo', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CategoriasScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
                   // --- Botón cerrar sesión ---
                   Padding(

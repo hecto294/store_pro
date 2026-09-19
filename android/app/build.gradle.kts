@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.store_pro_hdss"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

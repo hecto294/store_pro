@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/categoria.dart';
 import '../services/categoria_service.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/role_guard_widget.dart';
 import 'perfil_screen.dart';
 import 'productos_screen.dart';
 
@@ -128,7 +131,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           if (_filtroActual != FiltroEstado.todos)
             Container(
               width: double.infinity,
-              color: AppColors.dorado.withOpacity(0.15),
+              color: AppColors.dorado.withValues(alpha: 0.15),
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
               child: Row(
                 children: [
@@ -184,7 +187,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -197,7 +200,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                           height: 42,
                           decoration: BoxDecoration(
                             color: (cat.estado ? AppColors.azulInicio : Colors.grey)
-                                .withOpacity(0.12),
+                                .withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -218,14 +221,31 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                           cat.descripcion,
                           style: const TextStyle(color: AppColors.textoSecundario, fontSize: 12),
                         ),
-                        trailing: Switch(
-                          value: cat.estado,
-                          activeColor: AppColors.dorado,
-                          activeTrackColor: AppColors.dorado.withOpacity(0.4),
-                          onChanged: (val) async {
-                            await _service.cambiarEstado(cat.id);
-                            _cargarCategorias();
-                          },
+                        trailing: RoleGuardWidget(
+                          allowedRoles: const ['admin'],
+                          fallback: Chip(
+                            label: Text(
+                              cat.estado ? 'Activo' : 'Inactivo',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: cat.estado ? AppColors.azulFin : AppColors.textoSecundario,
+                              ),
+                            ),
+                            backgroundColor: (cat.estado ? AppColors.azulInicio : Colors.grey)
+                                .withValues(alpha: 0.12),
+                            visualDensity: VisualDensity.compact,
+                            side: BorderSide.none,
+                          ),
+                          child: Switch(
+                            value: cat.estado,
+                            activeThumbColor: AppColors.dorado,
+                            activeTrackColor: AppColors.dorado.withValues(alpha: 0.4),
+                            onChanged: (val) async {
+                              await _service.cambiarEstado(cat.id);
+                              _cargarCategorias();
+                            },
+                          ),
                         ),
                       ),
                     );

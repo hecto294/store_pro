@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import 'perfil_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import 'categorias_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,7 +13,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController(text: "admin@storepro.com");
   final _passCtrl = TextEditingController(text: "123456");
-  final _authService = AuthService();
   bool _isLoading = false;
   bool _ocultarPassword = true;
 
@@ -20,13 +20,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _ejecutarLogin() async {
     setState(() => _isLoading = true);
-    bool exito = await _authService.login(_emailCtrl.text, _passCtrl.text);
+
+    // Consumimos el AuthProvider global mediante context.read
+    // (context.read se usa dentro de callbacks/funciones, no en build,
+    // porque no necesitamos que este widget se reconstruya si cambia el provider aquí).
+    final authProvider = context.read<AuthProvider>();
+    bool exito = await authProvider.login(_emailCtrl.text, _passCtrl.text);
+
     setState(() => _isLoading = false);
 
     if (exito && mounted) {
+      // Redirige a Categorías (pantalla donde opera el RBAC con RoleGuardWidget)
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const PerfilScreen()),
+        MaterialPageRoute(builder: (_) => const CategoriasScreen()),
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -60,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: _acento.withOpacity(0.35),
+                          color: _acento.withValues(alpha: 0.35),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -88,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
+                          color: Colors.black.withValues(alpha: 0.06),
                           blurRadius: 16,
                           offset: const Offset(0, 6),
                         ),
@@ -156,9 +163,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: _acento.withOpacity(0.06),
+                      color: _acento.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: _acento.withOpacity(0.2)),
+                      border: Border.all(color: _acento.withValues(alpha: 0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,7 +215,6 @@ class _LoginScreenState extends State<LoginScreen> {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: () {
-        // Al tocar la fila, autocompleta los campos con esas credenciales.
         setState(() {
           _emailCtrl.text = email;
           _passCtrl.text = password;
