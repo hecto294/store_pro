@@ -7,10 +7,8 @@ import '../widgets/role_guard_widget.dart';
 import 'perfil_screen.dart';
 import 'productos_screen.dart';
 
-// Enum para representar las 3 opciones del filtro de forma segura y legible.
 enum FiltroEstado { todos, activos, inactivos }
 
-// Paleta compartida con la pantalla de perfil admin.
 class AppColors {
   static const azulInicio = Color(0xFF4C63F6);
   static const azulFin = Color(0xFF2A3899);
@@ -30,7 +28,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
   final CategoriaService _service = CategoriaService();
   late Future<List<Categoria>> _futureCategorias;
 
-  // Guarda cuál filtro está activo actualmente. Empieza mostrando todos.
+  // Por defecto se muestran todas (activas e inactivas).
   FiltroEstado _filtroActual = FiltroEstado.todos;
 
   @override
@@ -45,8 +43,6 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     });
   }
 
-  // Aplica el filtro seleccionado sobre la lista completa que ya llegó del servidor.
-  // El filtrado es 100% local: no se vuelve a pedir nada a la API.
   List<Categoria> _aplicarFiltro(List<Categoria> lista) {
     switch (_filtroActual) {
       case FiltroEstado.activos:
@@ -66,6 +62,84 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
         return 'Activos';
       case FiltroEstado.inactivos:
         return 'Inactivos';
+    }
+  }
+
+  void _mostrarDialogoCrear() {
+    final nombreCtrl = TextEditingController();
+    final descripcionCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Nueva categoría'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nombreCtrl,
+                decoration: const InputDecoration(labelText: 'Nombre'),
+              ),
+              TextField(
+                controller: descripcionCtrl,
+                decoration: const InputDecoration(labelText: 'Descripción'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nombreCtrl.text.trim().isEmpty) return;
+                final ok = await _service.crearCategoria(
+                  nombreCtrl.text.trim(),
+                  descripcionCtrl.text.trim(),
+                );
+                if (ok) {
+                  Navigator.pop(ctx);
+                  _cargarCategorias();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Error al crear la categoría')),
+                  );
+                }
+              },
+              child: const Text('Crear'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmarEliminar(Categoria cat) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar categoría'),
+        content: Text('¿Seguro que deseas eliminar "${cat.nombre}"? Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmar == true) {
+      final ok = await _service.eliminarCategoria(cat.id);
+      if (ok) {
+        _cargarCategorias();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al eliminar la categoría')),
+        );
+      }
     }
   }
 
@@ -90,7 +164,6 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           ),
         ),
         actions: [
-          // --- Selector de filtro (PopupMenuButton) ---
           PopupMenuButton<FiltroEstado>(
             icon: const Icon(Icons.filter_list),
             tooltip: 'Filtrar por estado',
@@ -125,9 +198,16 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
           )
         ],
       ),
+      floatingActionButton: RoleGuardWidget(
+        allowedRoles: const ['admin'],
+        child: FloatingActionButton(
+          onPressed: _mostrarDialogoCrear,
+          backgroundColor: AppColors.azulInicio,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+      ),
       body: Column(
         children: [
-          // --- Indicador visual de qué filtro está activo ---
           if (_filtroActual != FiltroEstado.todos)
             Container(
               width: double.infinity,
@@ -237,14 +317,23 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                             visualDensity: VisualDensity.compact,
                             side: BorderSide.none,
                           ),
-                          child: Switch(
-                            value: cat.estado,
-                            activeThumbColor: AppColors.dorado,
-                            activeTrackColor: AppColors.dorado.withValues(alpha: 0.4),
-                            onChanged: (val) async {
-                              await _service.cambiarEstado(cat.id);
-                              _cargarCategorias();
-                            },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Switch(
+                                value: cat.estado,
+                                activeThumbColor: AppColors.dorado,
+                                activeTrackColor: AppColors.dorado.withValues(alpha: 0.4),
+                                onChanged: (val) async {
+                                  await _service.cambiarEstado(cat.id);
+                                  _cargarCategorias();
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                onPressed: () => _confirmarEliminar(cat),
+                              ),
+                            ],
                           ),
                         ),
                       ),

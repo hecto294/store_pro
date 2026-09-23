@@ -54,6 +54,13 @@ class CategoriaService {
   Future<bool> cambiarEstado(int id) async {
     final headers = await _getHeaders();
     final res = await http.patch(Uri.parse('$baseUrl/categorias/$id/estado'), headers: headers);
+    print('PATCH estado categoria -> status: ${res.statusCode}, body: ${res.body}');
+    return res.statusCode == 200;
+  }
+
+  Future<bool> eliminarCategoria(int id) async {
+    final headers = await _getHeaders();
+    final res = await http.delete(Uri.parse('$baseUrl/categorias/$id'), headers: headers);
     return res.statusCode == 200;
   }
 }

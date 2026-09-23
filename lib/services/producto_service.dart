@@ -56,4 +56,10 @@ class ProductoService {
     final res = await http.patch(Uri.parse('$baseUrl/productos/$id/estado'), headers: headers);
     return res.statusCode == 200;
   }
+
+  Future<bool> eliminarProducto(int id) async {
+    final headers = await _getHeaders();
+    final res = await http.delete(Uri.parse('$baseUrl/productos/$id'), headers: headers);
+    return res.statusCode == 200;
+  }
 }

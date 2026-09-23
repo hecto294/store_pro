@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../models/producto.dart';
+import '../models/categoria.dart';
 import '../services/producto_service.dart';
+import '../services/categoria_service.dart';
 import '../widgets/role_guard_widget.dart';
 import '../widgets/offline_banner.dart';
 
@@ -14,6 +16,7 @@ class ProductosScreen extends StatefulWidget {
 
 class _ProductosScreenState extends State<ProductosScreen> {
   final ProductoService _service = ProductoService();
+  final CategoriaService _categoriaService = CategoriaService();
 
   List<Producto> _todosLosProductos = [];
   List<Producto> _productosFiltrados = [];
@@ -65,6 +68,145 @@ class _ProductosScreenState extends State<ProductosScreen> {
     });
   }
 
+  // --- Formulario para crear un nuevo producto ---
+  Future<void> _mostrarDialogoCrear() async {
+    final nombreCtrl = TextEditingController();
+    final precioCtrl = TextEditingController();
+    final stockCtrl = TextEditingController();
+
+    List<Categoria> categorias = [];
+    Categoria? categoriaSeleccionada;
+
+    try {
+      final todas = await _categoriaService.getCategorias();
+      categorias = todas.where((c) => c.estado == true).toList();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudieron cargar las categorías')),
+      );
+      return;
+    }
+
+    if (categorias.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay categorías activas. Crea o activa una primero')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              title: const Text('Nuevo producto'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nombreCtrl,
+                      decoration: const InputDecoration(labelText: 'Nombre'),
+                    ),
+                    TextField(
+                      controller: precioCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Precio'),
+                    ),
+                    TextField(
+                      controller: stockCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Stock'),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<Categoria>(
+                      initialValue: categoriaSeleccionada,
+                      decoration: const InputDecoration(labelText: 'Categoría'),
+                      items: categorias
+                          .map((c) => DropdownMenuItem(value: c, child: Text(c.nombre)))
+                          .toList(),
+                      onChanged: (val) => setDialogState(() => categoriaSeleccionada = val),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final precio = double.tryParse(precioCtrl.text.trim());
+                    final stock = int.tryParse(stockCtrl.text.trim());
+
+                    if (nombreCtrl.text.trim().isEmpty ||
+                        precio == null ||
+                        stock == null ||
+                        categoriaSeleccionada == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Completa todos los campos correctamente')),
+                      );
+                      return;
+                    }
+
+                    final ok = await _service.crearProducto(
+                      nombreCtrl.text.trim(),
+                      precio,
+                      stock,
+                      categoriaSeleccionada!.id,
+                    );
+
+                    if (ok) {
+                      Navigator.pop(ctx);
+                      _cargarProductos();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Error al crear el producto')),
+                      );
+                    }
+                  },
+                  child: const Text('Crear'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmarEliminar(Producto prod) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar producto'),
+        content: Text('¿Seguro que deseas eliminar "${prod.nombre}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmar == true) {
+      final ok = await _service.eliminarProducto(prod.id);
+      if (ok) {
+        _cargarProductos();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al eliminar el producto')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return OfflineBannerWidget(
@@ -83,11 +225,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
         floatingActionButton: RoleGuardWidget(
           allowedRoles: const ['admin'],
           child: FloatingActionButton.extended(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Formulario de Nuevo Producto (Acceso Admin)')),
-              );
-            },
+            onPressed: _mostrarDialogoCrear,
             icon: const Icon(Icons.add),
             label: const Text('Nuevo Producto'),
           ),
@@ -160,7 +298,6 @@ class _ProductosScreenState extends State<ProductosScreen> {
   }
 
   Widget _buildBodyContent() {
-    // Estado 1: CARGANDO → Shimmer skeleton
     if (_isLoading) {
       return ListView.builder(
         itemCount: 6,
@@ -180,7 +317,6 @@ class _ProductosScreenState extends State<ProductosScreen> {
       );
     }
 
-    // Estado 2: ERROR
     if (_errorMsg.isNotEmpty) {
       return Center(
         child: Padding(
@@ -203,7 +339,6 @@ class _ProductosScreenState extends State<ProductosScreen> {
       );
     }
 
-    // Estado 3: VACÍO
     if (_productosFiltrados.isEmpty) {
       return Center(
         child: Column(
@@ -217,7 +352,6 @@ class _ProductosScreenState extends State<ProductosScreen> {
       );
     }
 
-    // Estado 4: ÉXITO — con RBAC en el trailing
     return ListView.builder(
       itemCount: _productosFiltrados.length,
       padding: const EdgeInsets.all(12),
@@ -243,19 +377,27 @@ class _ProductosScreenState extends State<ProductosScreen> {
             ),
             subtitle: Text('Precio: \$${prod.precio} | Stock: ${prod.stock} un.'),
 
-            // Admin ve Switch (puede cambiar estado). Vendedor ve Chip informativo.
             trailing: RoleGuardWidget(
               allowedRoles: const ['admin'],
               fallback: Chip(
                 label: Text(prod.estado ? 'Activo' : 'Inactivo'),
                 backgroundColor: prod.estado ? Colors.green.shade50 : Colors.grey.shade200,
               ),
-              child: Switch(
-                value: prod.estado,
-                onChanged: (val) async {
-                  await _service.cambiarEstado(prod.id);
-                  _cargarProductos();
-                },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Switch(
+                    value: prod.estado,
+                    onChanged: (val) async {
+                      await _service.cambiarEstado(prod.id);
+                      _cargarProductos();
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () => _confirmarEliminar(prod),
+                  ),
+                ],
               ),
             ),
           ),
